@@ -1,7 +1,6 @@
 // Tran Thanh Minh - 103809048
 import { createContext, useContext, useReducer } from "react";
 import { APIendpoint } from "../data";
-import { FAKE_USER } from "./../data";
 import { toast } from "react-toastify";
 import handleResponse from "../utils/handleResponse";
 const AuthContext = createContext();
@@ -49,43 +48,36 @@ function AuthProvider({ children }) {
     formData.append("username", username); // Append the username and password to the FormData object
     formData.append("password", password);
     let result = undefined; // Initialize the result variable
-    if (username === FAKE_USER.username && password === FAKE_USER.password) {
-      dispatch({
-        type: "login",
-        payload: FAKE_USER,
+    try {
+      const response = await fetch(`${APIendpoint}/login`, {
+        // Send a POST request to the login endpoint
+        method: "POST",
+        body: formData,
       });
-      result = true;
-    } else {
-      try {
-        const response = await fetch(`${APIendpoint}/login`, {
-          // Send a POST request to the login endpoint
-          method: "POST",
-          body: formData,
+      result = await response.json(); // Parse the response as JSON
+      if (result.status === "200 OK" && result.data.token) {
+        // If the response is successful
+        dispatch({
+          type: "login",
+          payload: result.data,
         });
-        result = await response.json(); // Parse the response as JSON
-        if (result.status === "200 OK" && result.data.token) {
-          // If the response is successful
-          dispatch({
-            type: "login",
-            payload: result.data,
-          });
-        } else if (result.status === "401 Unauthorized" && result.message) {
-          // If the response is unauthorized
-          toast.error(result.message, { toastId: "toast" });
-        } else {
-          // If the response is not successful
-          toast.error(
-            handleResponse(
-              "We're currently facing connectivity issues. Please try again later."
-            ),
-            { toastId: "toast" }
-          );
-        }
-      } catch (error) {
-        console.log(error);
-        toast.error(handleResponse(error.message), { toastId: "toast" });
+      } else if (result.status === "401 Unauthorized" && result.message) {
+        // If the response is unauthorized
+        toast.error(result.message, { toastId: "toast" });
+      } else {
+        // If the response is not successful
+        toast.error(
+          handleResponse(
+            "We're currently facing connectivity issues. Please try again later."
+          ),
+          { toastId: "toast" }
+        );
       }
+    } catch (error) {
+      console.log(error);
+      toast.error(handleResponse(error.message), { toastId: "toast" });
     }
+
     return result;
   }
 
