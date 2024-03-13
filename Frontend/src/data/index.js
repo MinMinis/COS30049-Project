@@ -1,5 +1,4 @@
 export * from "./APIendpoint";
-export * from "./FAKE_USER";
 export * from "./LoginData";
 export * from "./FooterInfo";
 export * from "./People";
@@ -7,6 +6,4 @@ export * from "./Borderdata";
 export * from "./Description";
 export * from "./inputFields";
 export * from "./Profilefields";
-export * from "./history";
 export * from "./teammember";
-export * from "./Block";

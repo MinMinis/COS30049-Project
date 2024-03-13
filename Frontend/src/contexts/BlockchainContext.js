@@ -58,7 +58,6 @@ function BlockchainProvider({ children }) {
       });
       const result = await response;
       if (result.status === "200 OK") {
-        console.log(result.data);
         dispatch({ type: "history", payload: result.data });
         toast.success("History fetched successfully", { toastId: "toast" });
         return result.data;
@@ -77,7 +76,6 @@ function BlockchainProvider({ children }) {
       });
       const result = await response;
       if (result.status === "200 OK") {
-        console.log(response);
         toast.success("Pending transactions fetched successfully", {
           toastId: "toast",
         });

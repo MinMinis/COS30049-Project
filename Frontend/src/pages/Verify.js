@@ -1,13 +1,15 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import VerifyButton from "../components/Button/Verifybutton";
 import submission from "./../utils/submission";
 import { toast, ToastContainer } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import handleResponse from "../utils/handleResponse";
+import LoadingContainer from "./../components/LoadingContainer";
 
 function Verify() {
   const inputsRef = useRef([]);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const inputs = inputsRef.current;
@@ -57,6 +59,7 @@ function Verify() {
     };
   }, []);
   const handleSubmit = async () => {
+    setLoading(true);
     // Extract input values from refs
     const inputValues = inputsRef.current.map((input) => input.value);
 
@@ -65,8 +68,6 @@ function Verify() {
 
     // Create JSON object with key-value pair "otp"
     const otpData = { otp };
-
-    console.log(otpData); // JSON object with key "otp" and combined 5 numbers as value
 
     try {
       const response = await submission("verify", "post", otpData);
@@ -90,6 +91,8 @@ function Verify() {
     } catch (error) {
       toast.error(handleResponse(error.message), { toastId: "toast" });
       console.log(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -114,7 +117,13 @@ function Verify() {
             </div>
           </form>
           <div className="pt-4 verify-button-container">
-            <VerifyButton handleSubmit={handleSubmit} />
+            {loading ? (
+              <>
+                <LoadingContainer />
+              </>
+            ) : (
+              <VerifyButton handleSubmit={handleSubmit} />
+            )}
           </div>
         </div>
       </div>{" "}

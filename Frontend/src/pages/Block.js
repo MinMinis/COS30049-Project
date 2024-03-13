@@ -32,7 +32,6 @@ const Block = () => {
       setAllBlockLoading(true);
       try {
         const result = await fetchAllBlocks();
-        console.log(result);
         setAllBlocks(result);
         setFilteredBlock(result);
       } catch (error) {
