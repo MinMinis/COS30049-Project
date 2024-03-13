@@ -8,7 +8,7 @@ const submission = async (route, method = "post", data = {}) => {
       url: route,
       data: data,
     });
-    console.log("Response from server:", response.data);
+    // console.log("Response from server:", response.data);
     return response.data; // You can return the response data if needed
   } catch (error) {
     console.log("Error:", error);
