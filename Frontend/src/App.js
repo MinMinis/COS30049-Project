@@ -55,14 +55,7 @@ function App() {
                 }
               />
               <Route path="/signup" element={<Signup />} />{" "}
-              <Route
-                path="/block"
-                element={
-                  // <ProtectedRoute>
-                  <Block />
-                  //</ProtectedRoute>
-                }
-              />
+              <Route path="/block" element={<Block />} />
               <Route path="/verify" element={<Verify />} />
               <Route path="/forgotpw" element={<Forgotpassword />} />
               <Route path="/changepw" element={<Changepassword />} />

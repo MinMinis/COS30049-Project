@@ -82,7 +82,6 @@ export default function Pending() {
       const response = await submission("execute", "post", updateFormData);
       const result = await response;
       if (result.status === "200 OK") {
-        console.log(result);
         updateBalance(result.data.balance);
         setPending(result.data.history);
         toast.success(

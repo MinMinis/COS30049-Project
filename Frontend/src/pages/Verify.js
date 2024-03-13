@@ -69,8 +69,6 @@ function Verify() {
     // Create JSON object with key-value pair "otp"
     const otpData = { otp };
 
-    console.log(otpData); // JSON object with key "otp" and combined 5 numbers as value
-
     try {
       const response = await submission("verify", "post", otpData);
       if (response.error) {
