@@ -1,7 +1,6 @@
 //Nguyen Do Nhat Nam-104061616
 import React from "react";
 import Hero from "../components/Hero/Hero";
-// Nguyen Do Nhat Nam-104061616
 import Bordermain from "../components/Border/Bordermain";
 import Information from "../components/Information/Information";
 import Customer from "../components/Autoscrolling/Customer";
