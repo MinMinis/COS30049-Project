@@ -5,25 +5,14 @@ from .models import *
 from django.core.mail import EmailMessage
 
 
+#Used to create an OTP code consisting of 5 digits
 def generate_OTP():
     otp_code = ""
     for i in range(5) : 
         otp_code  += choice("123456789")
     return otp_code
 
-
-# def send_otp_via_email(email):
-#     subject = "Your account verification email"
-#     otp = generate_OTP()
-#     message = f"Your OTP is: {otp}"
-#     email_from = settings.EMAIL_HOST
-#     send_mail(subject, message, email_from, [email])
-    
-#     user = User.objects.get(email=email)
-#     user.otp = otp
-#     user.save()
-    
-
+# Used to send otp to mail to verify that account is valid
 def send_otp_via_email(email) : 
     subject = "Your account verification email : "
     otp_code = generate_OTP()
@@ -32,6 +21,7 @@ def send_otp_via_email(email) :
     otp_instance, created = OneTimePassword.objects.get_or_create(
         user=user, defaults={'code': otp_code, 'expiration_time': timezone.now() + timezone.timedelta(minutes=1)}
     )
+    # If the object already exists, update its OTP code and expiration time
     if not created:
         otp_instance.code = otp_code
         otp_instance.expiration_time = timezone.now() + timezone.timedelta(minutes=1)
@@ -39,9 +29,8 @@ def send_otp_via_email(email) :
 
     user.otp = otp_code
     user.save()
+    #Calculate expiration time (1 minute after current time)
     expiration_time = timezone.now() + timezone.timedelta(minutes=1)
-    print(f"Timezone now : {timezone.now()}")
-    print(f"expiration time : {expiration_time}")
     current_site = "Digicode"
     email_body = f"Dear {user.first_name},\n\nThank you for signing up on {current_site}. We appreciate your registration.\n\n"\
                 f"To verify your email and complete the registration process, please use the following one-time passcode: {otp_code}.\n\n"\
@@ -63,8 +52,6 @@ def send_otp_via_email_for_reset(email):
     )
 
     expiration_time = timezone.now() + timezone.timedelta(minutes=1)
-    print(f"Timezone now: {timezone.now()}")
-    print(f"Expiration time: {expiration_time}")
 
     current_site = "Digicode"
     email_body = f"Hi {user.first_name}, thank you for signing up on {current_site}. Please verify your email with the one-time passcode: {otp_code}."

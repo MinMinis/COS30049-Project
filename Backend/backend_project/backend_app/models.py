@@ -44,19 +44,6 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
-
-    # def save(self, *args, **kwargs):
-    #         if not self.pin :
-    #             raw_random_number = str(random.randint(1000000, 9999999)) 
-    #             print(raw_random_number) 
-    #             subject = "Your pin code :  "
-    #             current_site = "Digicode"
-    #             email_body = f"Hi  , Please remember your pin code, Your pin code is {raw_random_number}" 
-    #             from_email = settings.EMAIL_HOST
-    #             d_mail = EmailMessage(subject=subject, body=email_body, from_email=from_email, to=[self.email])
-    #             d_mail.send(fail_silently=True)
-    #             self.pin = bcrypt.hashpw(raw_random_number.encode('utf-8'), bcrypt.gensalt())
-    #         super().save(*args, **kwargs)
     def token(self):
         pass
 

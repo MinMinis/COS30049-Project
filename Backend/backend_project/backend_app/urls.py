@@ -1,15 +1,10 @@
 from django.urls import path 
 from backend_app.views import * 
 
-
-
-
 urlpatterns = [
-    #path('login',login_api,name="login"),
     path('signup', RegisterAPI.as_view() , name='signup') , 
     path('verify', VerifyOTP.as_view() , name='verify') ,
     path('login', LoginAPI.as_view() , name='login') , 
-    # path('blockchain', BlockChainView.as_view() , name='blockchain'),
     path('updateProfile' , updateProfile.as_view() , name='updateProfile') , 
     path('forgotPassword', ForgetPassword.as_view() , name='forgotPassword') ,
     path('changePassword', ResetPassword.as_view() , name='changePassword') ,

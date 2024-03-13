@@ -6,39 +6,40 @@ from .emails import *
 from rest_framework_simplejwt.tokens import RefreshToken
 from email import *
 from django.core.exceptions import ObjectDoesNotExist
-from .keyofuser import *
 from rest_framework_simplejwt.tokens import AccessToken
 from ecdsa import SigningKey, SECP256k1
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import check_password
-from .keyofuser import *
 import bcrypt
 from .functions import *
 from .connect_w3 import connect_to_w3
 from decimal import Decimal
 from decouple import config
 from .pending import get_pending_transactions
-# from .history import process_tx_list
-# from .transaction import process_transaction
 from .process import process_transaction
 from django.http import HttpResponse
+from decimal import Decimal
 class LoginAPI(GenericAPIView):
     def post(self, request):
         w3 = connect_to_w3()
         serializer = LoginSerializer(data=request.data)
         try :
+            # Check the validity of input data from the serializer
             if serializer.is_valid(raise_exception=True):
                 username = serializer.validated_data['username']
                 password = serializer.validated_data['password']
-
+                # Get user information from login name
                 user = User.objects.get(username=username)
-
+                # Check the password is correct
                 if check_password(password, user.password):
                     refresh = RefreshToken.for_user(user)
                     refresh['username'] = user.username
                     wallet = w3.to_checksum_address(user.user_address)
+                    # Get the account balance from the user's wallet
                     balance = w3.from_wei(w3.eth.get_balance(wallet), "ether")
+                    amount = Decimal(balance)
+                    amount_decimal = "{:.50f}".format(amount).rstrip('0')
                     return Response({
                         'status': '200 OK',
                         'data': {
@@ -47,7 +48,7 @@ class LoginAPI(GenericAPIView):
                             'email': user.email,
                             'lastname': user.last_name,
                             'name': user.first_name + " " + user.last_name,
-                            'balance': balance,
+                            'balance': amount_decimal,
                             'phone': user.phoneNumber,
                             'address': user.user_address,
                             'refresh': str(refresh),
@@ -71,6 +72,7 @@ class RegisterAPI(GenericAPIView):
     def post(self, request) :
         password = request.data.get('password')
         retypePassword = request.data.get('retypePassword')
+        # Check the match of the password and re-entered password
         if not password == retypePassword :
             return Response({
                 'status' : '401 Unauthorized' ,
@@ -79,6 +81,7 @@ class RegisterAPI(GenericAPIView):
             })
         serializers = UserInfoSerializer(data = request.data )
         try :
+            # Check the validity of input data from serializers
             if serializers.is_valid(raise_exception= True) :
                 user = serializers.save()
                 send_otp_via_email(serializers.data['email'])
@@ -108,30 +111,35 @@ class VerifyOTP(APIView):
         code = request.data.get('otp')
 
         try:
+            # Get OneTimePassword object information based on OTP code
             serializers = OneTimePassword.objects.get(code=code)
+            # Get user information based on OTP
             user_email = User.objects.get(otp=code)
 
             if not user_email.otp == code:
+                # If OTP does not match, mark the user as unconfirmed and return an error response
                 user_email.is_verified = False
                 return Response({'status': '400', 'message': 'OTP is no longer valid', 'data': 'otp wrong'})
 
             user = serializers.user
             if serializers.check_run_time():
+                # If the OTP execution time has expired, resend a new OTP and return an error response
                 send_otp_via_email(user_email)
                 return Response({'status': '400', 'message': 'OTP is no longer valid', 'data': 'otp wrong'})
 
             if not user_email.is_verified:
                 user_email.is_verified = True
+                # If the user is not yet confirmed, proceed to confirm the account
 
-
+                # Generate a random PIN
 
                 pin = str(randint(1000000, 9999999))
-                print(pin)
+
                 hash_pin = bcrypt.hashpw(pin.encode('utf-8'), bcrypt.gensalt())
                 user.pin = hash_pin
-                print(f"Hash pin : {user.pin}")
-                user_email.save()
 
+                user_email.save()
+                # Send PIN code to user email
                 subject = "Your pin code: "
                 email_body = f"""
                 Hi {user.first_name},
@@ -148,12 +156,12 @@ class VerifyOTP(APIView):
                 create_account , address = create_user(w3)
                 user.user_address = address
                 user.save()
+                # Encrypt account information with a PIN and save it to the database
                 data = encrypt_private_key(create_account , user.pin)
                 user.data = data
                 user.save()
-
+                # Giải mã thông tin tài khoản để kiểm tra tính hợp lệ
                 decrypt = decrypt_private_key(w3, user.data, user.pin)
-                print(decrypt.hex)
                 return Response({'status': '200 OK', 'message': 'Account verified successfully',
                                  'data': f'Please check and remember your pin is being send to your email'})
             return Response({'status': '400', 'message': 'Code is invalid', 'data': 'otp wrong'})
@@ -172,10 +180,13 @@ class updateProfile(APIView) :
         phone = request.data.get('phone')
         try :
             user = User.objects.get(username = username_from_token )
+            # Check if the phone received from the request is different from the user's current phone
             if(user.email != email) :
                 user.email = email
+            # Check if the password received from the request matches the user's current password.
             if(user.phoneNumber != phone) :
                 user.phoneNumber = phone
+            # Check if the password and confirm_password received from the request are the same
             if not check_password(password, user.password):
                 if(password == confirm_password) :
                     user.set_password(password)
@@ -210,17 +221,21 @@ class ForgetPassword(APIView):
                     'message': 'Username does not exist'
                 })
         user = User.objects.get(username=username)
+        # Save the email in the email field of the SaveEmailModel table
         save_mail = SaveEmailModel(email = user.email)
         save_mail.save()
+        # send otp to email 
         send_otp_via_email_for_reset(user.email)
 
         first_data = SaveEmailModel.objects.first()
-        print(first_data)
+
         return Response({
                     'status': '200 OK',
                     'message': 'OTP sent successfully'
                 })
 
+
+#using reset password in settings
 class ResetPassword(APIView) :
     def put(self , request) :
         first_data = SaveEmailModel.objects.first()
@@ -228,8 +243,6 @@ class ResetPassword(APIView) :
         password = request.data.get('password')
         confirm_password = request.data.get('confirm_password')
         otp = request.data.get('otp')
-        print(f"Password: {password}")
-        print(f"Confirm Password: {confirm_password}")
         if not first_data.check_run_time() :
             if otp == first_data.code :
                 if  confirm_password == password :
@@ -280,13 +293,13 @@ class TransactionView(APIView):
             access_token = AccessToken(token)
             username_from_token = access_token['username']
             data = User.objects.get(username=username_from_token)
-
+            # Check if to_address is a valid address on the Ethereum blockchain.
             if not w3.is_address(to_address):
                 return Response({
                     'status': '400 Bad Request',
                     'message': 'Invalid to_address'
                 })
-
+            # Convert to_address to a valid checksum address on the Ethereum blockchain
             receiver = w3.to_checksum_address(to_address)
 
             if not bcrypt.checkpw(pin.encode('utf-8'), data.pin):
@@ -296,8 +309,11 @@ class TransactionView(APIView):
                 })
 
             contract_address = read_contract_address()
+            #Call the open_transaction_factory() function to open and get information about the ABI (Application Binary Interface) of the contract.
             abi, abi2 = open_transaction_factory()
+            # Create a contract object on the Ethereum blockchain by passing in the address and ABI
             contract_instance = w3.eth.contract(address=contract_address, abi=abi)
+            #Decrypt the private key from the stored data of data
             private_key = decrypt_private_key(w3, data.data, data.pin)
             amount_in_wei = w3.to_wei(amount, 'ether')
             transaction = transaction_json(w3, data.user_address, amount_in_wei)
@@ -307,7 +323,7 @@ class TransactionView(APIView):
                     'status': '400',
                     'message': 'Not enough fee to transaction'
                 })
-
+            # Call the createTransaction() function to create and execute transactions on the Ethereum blockchain.
             receipt, success = createTransaction(w3, contract_instance, receiver, private_key, amount_in_wei, transaction)
             hash_block = receipt.blockHash.hex()
             transaction_hash = receipt.transactionHash.hex()
@@ -360,7 +376,7 @@ class HistoryView(APIView) :
         username_from_token = access_token['username']
         user = User.objects.get(username=username_from_token)
 
-        actions = ['txlist', 'txlistinternal']  # Danh sách các action
+        actions = ['txlist', 'txlistinternal']  # List of actions
 
         history = []
         id = 0
@@ -409,7 +425,6 @@ class HistoryView(APIView) :
                         "from" : each_result['from'] ,
                         "to": each_result['to']
                     }
-                    print(item)
                     history.append(item)
 
                 offset += 1
@@ -427,9 +442,7 @@ class ExecuteView(APIView):
         token = request.data.get('token')
         access_token = AccessToken(token)
         username_from_token = access_token['username']
-        print(username_from_token)
         pin = request.data.get('pin')
-        print(pin)
         transaction_address = request.data.get('item')
         action = request.data.get('action')
         user = User.objects.get(username=username_from_token)
@@ -469,7 +482,6 @@ class AllBlockView(APIView):
 
         for unique in block_chain :
             if unique not in unique_block :
-                # print(unique)
                 unique_block.append(unique)
         
         for block in unique_block : 
@@ -482,7 +494,6 @@ class AllBlockView(APIView):
                 'timestamp' : block.timestamp
             }
             return_block.append(block_item)
-            print(return_block)
         return Response({
                 'status': '200 OK',
                 'message': 'Fetch all blocks successfully ', 
@@ -492,12 +503,11 @@ class AllBlockView(APIView):
 class BlockDetailView(APIView):
     def get(self, request, block_id):
         w3 = connect_to_w3()
-        print(block_id)
 
         transactions_hash = []
         return_transactions = []
         blocks = HistoryModel.objects.all()
-        print(blocks)
+
         id = 0 
         # if w3.is_address(block_id):
         
@@ -506,17 +516,17 @@ class BlockDetailView(APIView):
         for db_trans in blocks : 
             transactions_hash.append(db_trans.transaction_hash)
             transactions_hash.append(db_trans.execute_transaction_hash)
-            print(db_trans)
         for trans in all_transaction : 
             if trans.hash.hex()  in transactions_hash : 
                 id += 1 
-                print(trans.hash.hex())
+                amount = Decimal((w3.from_wei(trans.value, 'ether')))
+                amount_decimal = "{:.50f}".format(amount).rstrip('0')
                 return_transactions.append({
                         'id' : id ,
                         'from' : trans['from'] ,
                         'to' : trans['to'] , 
                         'hash' : trans.hash.hex() , 
-                        'value' : (w3.from_wei(trans.value, 'ether'))  
+                        'value' : amount_decimal
                         })
                 
         return Response({
